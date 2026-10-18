@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BoxUp Gate System</title>
+<link rel="icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--forest:#16311F;--cream:#FAF7EF;--ink:#161512;--muted:#7A776C;--gold:#B98F4E;--line:#E4DED0;
+--ok:#1E7B3C;--okb:#E3F4E8;--warn:#9A6400;--warnb:#FFF3D6;--bad:#9E2B25;--badb:#FBE4E2;--part:#1D5C96;--partb:#E2EEFA;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--cream);font-family:Inter,sans-serif;color:var(--ink);min-height:100vh}
+.top{background:var(--forest);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:16px}
+.top h1{font-family:'Playfair Display';font-size:24px;flex:1}
+.top h1 small{display:block;font:600 11px Inter;color:var(--gold);letter-spacing:.14em;text-transform:uppercase}
+.pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 14px;font:600 13px Inter;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:#7CDB98}
+.wrap{padding:22px 28px;display:grid;gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.k{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;border-top:5px solid var(--forest)}
+.k .n{font-size:34px;font-weight:800;margin:4px 0}
+.k .l{font:700 11.5px Inter;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.k .s{font-size:12.5px;color:var(--muted)}
+.k.ok{border-top-color:var(--ok)} .k.ok .n{color:var(--ok)}
+.k.part{border-top-color:var(--part)} .k.part .n{color:var(--part)}
+.k.warn{border-top-color:var(--gold)} .k.warn .n{color:var(--warn)}
+.k.bad{border-top-color:var(--bad)} .k.bad .n{color:var(--bad)}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.card h2{font-family:'Playfair Display';font-size:18px;color:var(--forest);margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
+.card h2 span{font:600 12px Inter;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:14px;height:190px;padding:0 4px;border-bottom:1px solid var(--line)}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.bar i{display:block;width:100%;background:var(--forest);border-radius:6px 6px 0 0}
+.bar i.now{background:var(--gold)}
+.bar b{font-size:12px}
+.xl{display:flex;gap:14px;padding:6px 4px 0}.xl span{flex:1;text-align:center;font-size:11.5px;color:var(--muted)}
+.cr{display:grid;gap:12px}
+.cr .r{display:grid;grid-template-columns:110px 1fr 70px;align-items:center;gap:10px;font-size:13.5px;font-weight:600}
+.track{height:12px;background:#F1EDE2;border-radius:99px;overflow:hidden;display:flex}
+.track i{display:block;height:100%}
+.cr .r em{font-style:normal;color:var(--muted);font-size:12.5px;text-align:right}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:11px 12px;border-radius:12px;margin-bottom:9px;font-size:13.5px}
+.alert b{display:block}
+.alert .t{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.a-bad{background:var(--badb);color:var(--bad)} .a-warn{background:var(--warnb);color:var(--warn)} .a-part{background:var(--partb);color:var(--part)}
+.ic{font-size:18px;line-height:1}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font:700 11px Inter;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid #F1EDE2}
+td.o{font-weight:700}
+.chip{font:800 11px Inter;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.c-ok{background:var(--okb);color:var(--ok)}.c-part{background:var(--partb);color:var(--part)}.c-warn{background:var(--warnb);color:var(--warn)}.c-bad{background:var(--badb);color:var(--bad)}
+.guard{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F1EDE2;font-size:13.5px}
+.guard:last-child{border:0}
+.av{width:36px;height:36px;border-radius:50%;background:var(--forest);color:#fff;display:grid;place-items:center;font-weight:700}
+.guard .m{flex:1}.guard .m span{display:block;color:var(--muted);font-size:12px}
+.guard .n{font-weight:800;color:var(--forest);font-size:18px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.rings{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:6px 0}
+.rc{display:flex;flex-direction:column;align-items:center;gap:12px}
+.ring{width:170px;height:170px;border-radius:50%;display:grid;place-items:center}
+.ring .in{width:136px;height:136px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .in b{font-size:44px;font-weight:800;line-height:1}
+.ring .in span{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:600}
+.rl{font:700 13px Inter;color:var(--ink);letter-spacing:.06em;text-transform:uppercase}
+</style>
+<style>
+.tabs{display:flex;gap:6px;margin-right:auto;margin-left:24px}
+.tabs a{color:#fff;text-decoration:none;font:700 13.5px Inter;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25)}
+.tabs a.on{background:var(--gold);border-color:var(--gold)}
+.top h1{flex:none}
+.wrap{max-width:1440px;margin:0 auto}
+.ring{transition:background .4s}
+.empty{padding:22px;text-align:center;color:var(--muted);font-size:14px}
+.err{background:var(--badb);color:var(--bad);border-radius:12px;padding:12px 16px;font-weight:600;font-size:14px}
+.err[hidden]{display:none}
+select.pill{appearance:none;color:#fff;cursor:pointer}
+select.pill option{color:#000}
+@media (max-width:1100px){.rings{grid-template-columns:repeat(3,1fr);row-gap:22px}.grid{grid-template-columns:1fr}}
+@media (max-width:640px){.rings{grid-template-columns:repeat(2,1fr)}.ring{width:130px;height:130px}.ring .in{width:104px;height:104px}.ring .in b{font-size:32px}
+ .top{flex-wrap:wrap}.wrap{padding:14px}table{font-size:12.5px}th:nth-child(4),td:nth-child(4),th:nth-child(6),td:nth-child(6){display:none}}
+</style></head><body>
+<div class="top">
+  <h1><small>BoxUp · Security Gate</small>Gate System</h1>
+  <nav class="tabs"><a href="./">&#128247; Scanner</a><a class="on" href="dashboard.html">&#128202; System</a></nav>
+  <div class="pill"><span class="dot" id="dot"></span><span id="upd">Loading…</span></div>
+  <div class="pill" id="today"></div>
+  <div class="pill" id="duty">&#128737; On duty: -</div>
+</div>
+<div class="wrap">
+  <div class="err" id="err" hidden></div>
+  <div class="card"><div class="rings" id="rings"></div></div>
+  <div class="grid">
+    <div class="card"><h2>Boxes out by hour <span>Today, from Gate Scans</span></h2><div id="hours"></div></div>
+    <div class="card"><h2>By courier <span>boxes out today</span></h2><div class="cr" id="couriers"></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Latest gate scans <span id="latestN"></span></h2><div id="latest"></div></div>
+    <div style="display:grid;gap:18px;align-content:start">
+      <div class="card"><h2>Needs attention <span id="attN"></span></h2><div id="att"></div></div>
+      <div class="card"><h2>Guards today <span>boxes scanned</span></h2><div id="guards"></div></div>
+    </div>
+  </div>
+</div>
+<script>
+/* Same Apps Script web app as the Shipping Label Generator and the Gate Scanner */
+const LOG_URL = 'https://script.google.com/macros/s/AKfycbxkWlpzmubWJwgFQF7cCDAegDHDFpst-j2AnoLVrk3rVnZL9CuOukEIC_GR43gUlL7e/exec';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('today').innerHTML = '&#128197; ' + new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+
+function ring(n, label, sub, color, pct){
+  pct = Math.max(0, Math.min(100, pct || 0));
+  return `<div class="rc"><div class="ring" style="background:conic-gradient(${color} 0 ${pct}%, #EEE9DC ${pct}% 100%)"><div class="in"><b style="color:${color}">${n}</b><span>${sub}</span></div></div><div class="rl">${label}</div></div>`;
+}
+const isOut = r => r.status === 'DISPATCHED' || r.status === 'PARTIAL';
+const isProb = r => r.status === 'NOT FOUND' || r.status === 'ALREADY OUT' || r.status === 'MISMATCH';
+function hourOf(at){ const m = String(at).match(/(\d+):(\d+)\s*(am|pm)/i); if(!m) return null; let h = +m[1] % 12; if(/pm/i.test(m[3])) h += 12; return h; }
+function hourLabel(h){ return (h % 12 || 12) + (h < 12 ? ' am' : ' pm'); }
+
+function render(list){
+  const scans = list.length, out = list.filter(isOut);
+  const orders = {};                       // latest state per order
+  list.slice().reverse().forEach(r => { if(isOut(r)) orders[r.orderid] = r; });
+  const done = Object.values(orders).filter(r => r.status === 'DISPATCHED').length;
+  const part = Object.values(orders).filter(r => r.status === 'PARTIAL');
+  const probs = list.filter(isProb);
+  const nf = probs.filter(r => r.status === 'NOT FOUND').length, dup = probs.filter(r => r.status === 'ALREADY OUT').length, mm = probs.filter(r => r.status === 'MISMATCH').length;
+  const nOrders = Object.keys(orders).length;
+  $('rings').innerHTML =
+    ring(out.length, 'Boxes out of gate', scans ? Math.round(out.length / scans * 100) + '% of scans' : 'today', '#1E7B3C', scans ? out.length / scans * 100 : 0) +
+    ring(done, 'Orders complete', `of ${nOrders} orders`, '#16311F', nOrders ? done / nOrders * 100 : 0) +
+    ring(part.length, 'Boxes still inside', 'orders part shipped', '#1D5C96', nOrders ? part.length / nOrders * 100 : 0) +
+    ring(probs.length, 'Problems', [nf && nf + ' not found', dup && dup + ' dup', mm && mm + ' mismatch'].filter(Boolean).join(' · ') || 'none', '#9E2B25', scans ? probs.length / scans * 100 : 0) +
+    ring(scans, 'Total scans', 'today', '#B98F4E', 100);
+
+  // by hour
+  const hrs = {}; out.forEach(r => { const h = hourOf(r.at); if(h !== null) hrs[h] = (hrs[h] || 0) + 1; });
+  const keys = Object.keys(hrs).map(Number);
+  if(!keys.length) $('hours').innerHTML = '<div class="empty">No boxes out yet today.</div>';
+  else{
+    const lo = Math.min(...keys, 9), hi = Math.max(...keys, new Date().getHours()), max = Math.max(...Object.values(hrs));
+    const now = new Date().getHours(); let bars = '', xs = '';
+    for(let h = lo; h <= hi; h++){ const n = hrs[h] || 0;
+      bars += `<div class="bar"><b>${n || ''}</b><i class="${h === now ? 'now' : ''}" style="height:${n ? Math.max(4, n / max * 82) : 0}%"></i></div>`;
+      xs += `<span>${hourLabel(h)}</span>`; }
+    $('hours').innerHTML = `<div class="bars">${bars}</div><div class="xl">${xs}</div>`;
+  }
+  // by courier
+  const cr = {}; out.forEach(r => { const c = r.courier || 'Other'; cr[c] = (cr[c] || 0) + 1; });
+  const cmax = Math.max(1, ...Object.values(cr));
+  $('couriers').innerHTML = Object.keys(cr).length ? Object.entries(cr).sort((a, b) => b[1] - a[1]).map(([c, n]) =>
+    `<div class="r">${esc(c)}<div class="track"><i style="width:${n / cmax * 100}%;background:var(--forest)"></i></div><em>${n}</em></div>`).join('')
+    : '<div class="empty">No boxes out yet today.</div>';
+  // latest
+  const chip = r => ({ DISPATCHED:['c-ok','DISPATCHED'], PARTIAL:['c-part',`BOX ${r.box}/${r.total}`], 'ALREADY OUT':['c-warn','ALREADY OUT'], 'NOT FOUND':['c-bad','NOT FOUND'], MISMATCH:['c-bad','MISMATCH'] }[r.status] || ['c-warn', r.status]);
+  $('latestN').textContent = scans ? `last ${Math.min(12, scans)} of ${scans}` : '';
+  $('latest').innerHTML = scans ? `<table><tr><th>Time</th><th>Order ID</th><th>Customer</th><th>Courier</th><th>Box</th><th>Guard</th><th>Status</th></tr>${
+    list.slice(0, 12).map(r => { const [c, t] = chip(r); return `<tr><td>${esc(r.at)}</td><td class="o">${esc(r.orderid)}</td><td>${esc(r.name || (r.status === 'NOT FOUND' ? 'Not in log' : ''))}</td><td>${esc(r.courier || '')}</td><td>${r.box ? esc(r.box) + ' / ' + esc(r.total) : ''}</td><td>${esc(r.by || '')}</td><td><span class="chip ${c}">${esc(t)}</span></td></tr>`; }).join('')}</table>`
+    : '<div class="empty">No scans yet today.</div>';
+  // attention
+  const att = [];
+  probs.forEach(r => att.push(r.status === 'NOT FOUND'
+    ? `<div class="alert a-bad"><span class="ic">&#10006;</span><div><b>${esc(r.orderid)} not found</b>Box stopped at gate, check the label</div><span class="t">${esc(r.at)}</span></div>`
+    : r.status === 'MISMATCH'
+    ? `<div class="alert a-bad"><span class="ic">&#10006;</span><div><b>${esc(r.orderid)} barcode mismatch</b>Order ID and AWB from different orders</div><span class="t">${esc(r.at)}</span></div>`
+    : `<div class="alert a-warn"><span class="ic">&#9888;</span><div><b>${esc(r.orderid)} scanned again</b>Check for a duplicate label</div><span class="t">${esc(r.at)}</span></div>`));
+  part.forEach(r => att.push(`<div class="alert a-part"><span class="ic">&#9203;</span><div><b>${esc(r.orderid)}: ${r.box} of ${r.total} boxes out</b>${r.total - r.box} box${r.total - r.box > 1 ? 'es' : ''} still inside</div><span class="t">${esc(r.at)}</span></div>`));
+  $('attN').textContent = att.length ? att.length + ' open' : '';
+  $('att').innerHTML = att.length ? att.slice(0, 10).join('') : '<div class="empty">All clear.</div>';
+  // guards
+  const g = {}; list.forEach(r => { if(!r.by) return; g[r.by] = g[r.by] || { n:0, first:r.at, last:r.at }; if(isOut(r)) g[r.by].n++; g[r.by].first = r.at; });
+  $('guards').innerHTML = Object.keys(g).length ? Object.entries(g).map(([name, v]) =>
+    `<div class="guard"><div class="av">${esc(name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase())}</div><div class="m">${esc(name)}<span>${esc(v.first)} to ${esc(v.last)}</span></div><div class="n">${v.n}</div></div>`).join('')
+    : '<div class="empty">No guard has scanned yet today.</div>';
+  $('duty').innerHTML = '&#128737; On duty: ' + esc(list[0] && list[0].by || '-');
+}
+
+async function load(){
+  try{
+    const res = await fetch(LOG_URL + '?action=gatetoday&t=' + Date.now());
+    let d = null; try{ d = await res.json(); }catch(e){}
+    if(!d || d.ok === undefined) throw new Error('The Google Sheet script does not have the Gate Scanner part yet (add GateScan.gs and deploy a new version).');
+    if(!d.ok) throw new Error(d.error || 'Sheet error');
+    $('err').hidden = true; render(d.list || []);
+    $('dot').style.background = '#7CDB98';
+    $('upd').textContent = 'Live · updated ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    $('dot').style.background = '#F0A35E';
+    $('upd').textContent = 'Not updated';
+    $('err').hidden = false; $('err').textContent = e.message === 'Failed to fetch' ? 'Could not reach the Google Sheet. Check the internet.' : e.message;
+  }
+}
+load(); setInterval(load, 30000);
+</script>
+</body></html>
