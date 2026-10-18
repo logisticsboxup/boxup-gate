@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="barcode.js"></script>
 <style>
   :root{
     --forest:#16311F; --cream:#FAF7EF; --paper:#FFFFFF; --ink:#161512; --muted:#7A776C;
@@ -42,6 +42,13 @@
   #camBtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:15px;font-size:16px;}
   #reader{margin-top:12px;border-radius:12px;overflow:hidden;display:none;}
   #reader.on{display:block;}
+  #reader{position:relative;background:#000;}
+  #camVid{display:block;width:100%;max-height:60vh;object-fit:cover;}
+  .aim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .aim i{width:84%;height:38%;border:3px solid rgba(255,255,255,.9);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.28);transition:border-color .15s;}
+  .aim.hit i{border-color:#7CDB98;}
+  .aim i::after{content:"";display:block;margin:auto;position:relative;top:50%;height:2px;width:92%;background:rgba(255,80,80,.85);}
+  .cam-msg{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:rgba(0,0,0,.55);color:#fff;font:600 13.5px 'Inter';text-align:center;}
 
   .result{margin-top:16px;border-radius:16px;padding:20px 18px;border:2px solid transparent;display:none;}
   .result.on{display:block;animation:pop .18s ease-out;}
@@ -168,7 +175,7 @@
     </div>
     <div class="hint">Scan the Order ID (or any AWB) on a box. A list of all its boxes opens: tick the ones going out. When done, press Done.</div>
     <button class="btn gold" id="camBtn">&#128247; Scan with camera</button>
-    <div id="reader"></div>
+    <div id="reader"><video id="camVid" playsinline muted autoplay></video><div class="aim"><i></i></div><div class="cam-msg" id="camMsg">Hold the barcode flat inside the frame, 10 to 20 cm away</div></div>
   </div>
 
 
@@ -456,32 +463,69 @@ $('refreshBtn').onclick = () => loadToday();
 function focusCode(){ if($('guardModal').hidden && $('boxModal').hidden && !camOn && DEVICE === 'Gate PC') $('code').focus(); }
 $('code').addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); addToBucket($('code').value); } });
 $('goBtn').onclick = () => addToBucket($('code').value);
-document.addEventListener('click', e => { if(!e.target.closest('input,button,#reader,.modal')) focusCode(); });
+document.addEventListener('click', e => { if(!e.target.closest('input,button,label,#reader,.modal')) focusCode(); });
 window.addEventListener('focus', focusCode);
 
-/* ---------- phone camera ---------- */
-let cam = null, camOn = false;
+/* ---------- camera (phone or PC webcam) ----------
+   Uses the phone's built-in barcode reader when it has one, otherwise the bundled
+   ZXing engine (barcode.js + zxing_reader.wasm), which reads tilted and small 1D barcodes. */
+const FORMATS = ['code_128','code_39','code_93','ean_13','ean_8','itf','codabar','upc_a','qr_code','data_matrix'];
+let stream = null, camOn = false, detector = null, camBusy = false, camTimer = null, camLast = '', camLastAt = 0;
+async function getDetector(){
+  if(detector) return detector;
+  try{
+    if('BarcodeDetector' in window){
+      const ok = await window.BarcodeDetector.getSupportedFormats();
+      if(ok.includes('code_128')) return detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => ok.includes(f)) });
+    }
+  }catch(e){}
+  if(!window.ZXBarcodeDetector) throw new Error('engine not loaded');
+  return detector = new window.ZXBarcodeDetector({ formats: FORMATS });
+}
 $('camBtn').onclick = async () => {
   if(camOn){ stopCam(); return; }
-  if(typeof Html5Qrcode === 'undefined'){ alert('Camera scanner did not load. Check the internet and reopen the app.'); return; }
   if(!guard){ askGuard(); return; }
-  $('reader').classList.add('on');
-  cam = cam || new Html5Qrcode('reader', { formatsToSupport: [
-    Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.QR_CODE
-  ], experimentalFeatures:{ useBarCodeDetectorIfSupported:true }, verbose:false });
+  try{ await getDetector(); }catch(e){ alert('The barcode reader did not load. Check the internet and reopen the app.'); return; }
   try{
-    await cam.start({ facingMode:'environment' },
-      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * .9), height: Math.max(90, Math.floor(h * .35)) }) },
-      text => addToBucket(text), () => {});
-    camOn = true; $('camBtn').innerHTML = '&#9632; Stop camera';
+    stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{
+      facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } } });
   }catch(err){
-    $('reader').classList.remove('on');
-    alert('Could not open the camera. Allow camera access for this app in the phone settings.');
+    alert('Could not open the camera. Allow camera access for this app (lock icon in the address bar, or phone settings).'); return;
   }
+  const track = stream.getVideoTracks()[0];
+  try{ const c = track.getCapabilities ? track.getCapabilities() : {};
+       if(c.focusMode && c.focusMode.includes('continuous')) await track.applyConstraints({ advanced:[{ focusMode:'continuous' }] }); }catch(e){}
+  const v = $('camVid'); v.srcObject = stream; await v.play().catch(()=>{});
+  camOn = true; $('reader').classList.add('on'); $('camBtn').innerHTML = '&#9632; Stop camera';
+  $('camMsg').textContent = 'Hold the barcode flat inside the frame, 10 to 20 cm away';
+  camTimer = setInterval(camTick, 140);
 };
-async function stopCam(){
-  try{ if(cam && camOn) await cam.stop(); }catch(e){}
+async function camTick(){
+  if(!camOn || camBusy || !$('boxModal').hidden) return;
+  const v = $('camVid'); if(v.readyState < 2) return;
+  camBusy = true;
+  try{
+    const found = await detector.detect(v);
+    const hit = found.find(f => f.rawValue && String(f.rawValue).trim().length >= 4);
+    if(hit){
+      const val = String(hit.rawValue).trim(), now = Date.now();
+      if(val !== camLast || now - camLastAt > 3000){
+        camLast = val; camLastAt = now;
+        $('reader').querySelector('.aim').classList.add('hit');
+        $('camMsg').textContent = 'Read: ' + val;
+        setTimeout(() => $('reader').querySelector('.aim').classList.remove('hit'), 600);
+        addToBucket(val);
+      }
+    }
+  }catch(e){ /* frame not ready */ }
+  camBusy = false;
+}
+function stopCam(){
+  clearInterval(camTimer); camTimer = null;
+  if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  $('camVid').srcObject = null;
   camOn = false; $('reader').classList.remove('on'); $('camBtn').innerHTML = '&#128247; Scan with camera';
+  focusCode();
 }
 
 /* ---------- online / offline ---------- */
