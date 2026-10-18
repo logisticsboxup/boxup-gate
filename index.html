@@ -130,6 +130,16 @@
   .bx-oid{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;}
   .bx-who{font-size:15px;font-weight:600;margin-top:4px;}
   .bx-cr{font-size:13px;color:var(--gold);font-weight:700;margin-top:2px;letter-spacing:.03em;}
+  .card.dup{max-width:440px;padding:0;overflow:hidden;text-align:center;}
+  .dup-hd{padding:20px 18px;font:800 26px 'Inter';letter-spacing:.02em;color:#fff;}
+  .dup.warn .dup-hd{background:#B07A12;} .dup.bad .dup-hd{background:var(--bad);}
+  .dup-bd{padding:20px 22px 6px;}
+  .dup-oid{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--forest);word-break:break-all;}
+  .dup-box{font:700 16px 'Inter';margin-top:6px;}
+  .dup-who{font-size:14px;color:var(--muted);margin-top:4px;}
+  .dup-why{margin-top:14px;background:#FBFAF6;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14.5px;line-height:1.45;}
+  .dup-ft{padding:16px 22px 20px;}
+  .dup-ft .btn{width:100%;padding:15px;font-size:17px;}
   .bx-warn{margin-top:12px;background:#FFF3D6;color:#7A4F00;border-radius:10px;padding:10px 12px;font:700 14px 'Inter';}
   .bx-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line);font:700 12px 'Inter';color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
   .bx-bar .btn{padding:7px 12px;font-size:12.5px;width:auto;}
@@ -199,6 +209,14 @@
 
   <div class="listhd"><h2 id="listTitle">Today at the gate</h2><button class="btn ghost" id="refreshBtn" style="padding:8px 12px;font-size:13px">Refresh</button></div>
   <div class="list" id="list"><div class="empty">Loading…</div></div>
+</div>
+
+<div class="modal" id="dupModal" hidden>
+  <div class="card dup warn" id="dupCard">
+    <div class="dup-hd" id="dupTitle">&#9888; ALREADY SCANNED</div>
+    <div class="dup-bd" id="dupBody"></div>
+    <div class="dup-ft"><button class="btn" id="dupOk">OK</button></div>
+  </div>
 </div>
 
 <div class="modal" id="boxModal" hidden>
@@ -296,7 +314,7 @@ async function addToBucket(raw){
   $('code').value = '';
   if(!code) return;
   if(!guard){ askGuard(); return; }
-  if(!$('boxModal').hidden) return;
+  if(!$('boxModal').hidden || !$('dupModal').hidden) return;
   const now = Date.now();
   if(code === lastCode && now - lastAt < 2500) return;
   lastCode = code; lastAt = now;
@@ -340,21 +358,25 @@ function openBoxes(d){
     focusCode();
     return;
   }
-  // something is wrong: show the order's boxes so the guard can see why
-  pop = d;
-  const t = exact || d.boxes[0];
-  const why = t.out ? `This box already went out${t.outAt ? ' on ' + esc(t.outAt) : ''}${t.outBy ? ' (' + esc(t.outBy) + ')' : ''}. Check for a duplicate label.`
-            : t.inBucket ? 'This box is already in the bucket. Do not scan it twice.'
-            : 'All boxes of this order are already out or in the bucket.';
-  d.boxes.forEach(b => { b.tick = false; });
-  $('bxHead').innerHTML = `<div class="bx-oid">Order ${esc(o.orderid)}</div>
-    <div class="bx-who">${[o.name, o.city].filter(Boolean).map(esc).join(', ')}</div>
-    <div class="bx-cr">${esc(o.courier || '')} · ${o.total} box${o.total > 1 ? 'es' : ''}</div>
-    <div class="bx-warn">&#9888; ${why}</div>`;
-  renderBoxes();
-  $('boxModal').hidden = false;
-  beep('warn');
+  // something is wrong: one clear alert
+  const t = exact || d.boxes.find(b => b.inBucket) || d.boxes[0];
+  const inB = t.inBucket && !t.out;
+  $('dupTitle').innerHTML = inB ? '&#9888; ALREADY SCANNED' : '&#9888; ALREADY OUT';
+  $('dupCard').className = 'card dup ' + (inB ? 'warn' : 'bad');
+  $('dupBody').innerHTML = `<div class="dup-oid">${esc(o.orderid)}</div>
+    <div class="dup-box">Box ${t.box} of ${d.boxes.length}${t.awb ? ' · AWB ' + esc(t.awb) : ''}</div>
+    <div class="dup-who">${[o.name, o.city, o.courier].filter(Boolean).map(esc).join(' · ')}</div>
+    <div class="dup-why">${inB ? 'This box is already in the bucket. Do not add it again.'
+      : `This box already went out${t.outAt ? ' on <b>' + esc(t.outAt) + '</b>' : ''}${t.outBy ? ' by <b>' + esc(t.outBy) + '</b>' : ''}. Check for a duplicate label and stop the box.`}</div>`;
+  $('dupModal').hidden = false;
+  setTimeout(() => $('dupOk').focus(), 50);
+  beep(inB ? 'warn' : 'bad');
+  showResult(inB ? 'r-warn' : 'r-bad', inB ? '&#9888; ALREADY SCANNED' : '&#9888; ALREADY OUT', `<div class="oid">${esc(o.orderid)} · Box ${t.box} of ${d.boxes.length}</div>`);
 }
+function closeDup(){ $('dupModal').hidden = true; focusCode(); }
+$('dupOk').onclick = closeDup;
+$('dupModal').addEventListener('click', e => { if(e.target === $('dupModal')) closeDup(); });
+document.addEventListener('keydown', e => { if(!$('dupModal').hidden && (e.key === 'Escape' || e.key === 'Enter')){ e.preventDefault(); closeDup(); } });
 function renderBoxes(){
   const d = pop;
   $('bxList').innerHTML = d.boxes.map((b, i) => {
@@ -486,7 +508,7 @@ function renderList(){
 $('refreshBtn').onclick = () => loadToday();
 
 /* ---------- USB / keyboard scanner: the input keeps focus, Enter submits ---------- */
-function focusCode(){ if($('guardModal').hidden && $('boxModal').hidden && !camOn && DEVICE === 'Gate PC') $('code').focus(); }
+function focusCode(){ if($('guardModal').hidden && $('boxModal').hidden && $('dupModal').hidden && !camOn && DEVICE === 'Gate PC') $('code').focus(); }
 $('code').addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); addToBucket($('code').value); } });
 $('goBtn').onclick = () => addToBucket($('code').value);
 document.addEventListener('click', e => { if(!e.target.closest('input,button,label,#reader,.modal')) focusCode(); });
@@ -527,7 +549,7 @@ $('camBtn').onclick = async () => {
   camTimer = setInterval(camTick, 140);
 };
 async function camTick(){
-  if(!camOn || camBusy || !$('boxModal').hidden) return;
+  if(!camOn || camBusy || !$('boxModal').hidden || !$('dupModal').hidden) return;
   const v = $('camVid'); if(v.readyState < 2) return;
   camBusy = true;
   try{

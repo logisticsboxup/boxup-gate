@@ -57,7 +57,7 @@ td.o{font-weight:700}
 .guard .n{font-weight:800;color:var(--forest);font-size:18px}
 .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:12px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.rings{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:6px 0}
+.rings{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:6px 0}
 .rc{display:flex;flex-direction:column;align-items:center;gap:12px}
 .ring{width:170px;height:170px;border-radius:50%;display:grid;place-items:center}
 .ring .in{width:136px;height:136px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -71,6 +71,27 @@ td.o{font-weight:700}
 .tabs a.on{background:var(--gold);border-color:var(--gold)}
 .top h1{flex:none}
 .wrap{max-width:1440px;margin:0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cat{border-top:5px solid #7A4CB4}.cat.c2b{border-top-color:#1D5C96}
+.cat.c2c h2{color:#5B2E91}.cat.c2b h2{color:#1D5C96}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.st{background:#FBFAF6;border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center}
+.st b{display:block;font-size:30px;font-weight:800;line-height:1.1}
+.st span{display:block;font:700 11px Inter;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.st.k1 b{color:var(--forest)}.st.k2 b{color:var(--ok)}.st.k3 b{color:var(--warn)}.st.k4 b{color:var(--part)}
+.seg{display:inline-flex;background:#F1EDE2;border-radius:999px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;font:700 12.5px Inter;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--forest);color:#fff}
+.tag{display:inline-block;font:800 10.5px Inter;letter-spacing:.06em;padding:3px 7px;border-radius:6px}
+.t-B2C{background:#EDE4F7;color:#5B2E91}.t-B2B{background:#E0EEF7;color:#1D5C96}
+.pscroll{max-height:420px;overflow:auto}
+.bkt{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.bkt-hd{display:flex;align-items:center;gap:12px;background:#F4F1E8;padding:10px 14px;font-size:13.5px}
+.bkt-hd b{color:var(--forest)}.bkt-hd span{color:var(--muted);font-weight:600}.bkt-hd em{margin-left:auto;font-style:normal;font-weight:700;color:var(--ok)}.bkt-hd em i{font-style:normal;color:var(--bad)}
+.bkt-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid #F1EDE2;font-size:13.5px}
+.bkt-row .o{font-weight:700;min-width:120px}.bkt-row .nm{flex:1;color:var(--muted)}.bkt-row .bx{width:70px;color:var(--muted);font-weight:600}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+@media (max-width:640px){.stats4{grid-template-columns:repeat(2,1fr)}}
 .ring{transition:background .4s}
 .empty{padding:22px;text-align:center;color:var(--muted);font-size:14px}
 .err{background:var(--badb);color:var(--bad);border-radius:12px;padding:12px 16px;font-weight:600;font-size:14px}
@@ -91,15 +112,15 @@ select.pill option{color:#000}
 <div class="wrap">
   <div class="err" id="err" hidden></div>
   <div class="card"><div class="rings" id="rings"></div></div>
-  <div class="grid">
-    <div class="card"><h2>Boxes out by hour <span>Today, from Gate Scans</span></h2><div id="hours"></div></div>
-    <div class="card"><h2>By courier <span>boxes out today</span></h2><div class="cr" id="couriers"></div></div>
+  <div class="grid2">
+    <div class="card cat c2c"><h2>B2C <span>Order ID BoxUp + number</span></h2><div class="stats4" id="catB2C"></div></div>
+    <div class="card cat c2b"><h2>B2B <span>all other orders</span></h2><div class="stats4" id="catB2B"></div></div>
   </div>
+  <div class="card"><h2>Pending orders <span class="seg"><button data-p="today" class="on">Today</button><button data-p="all">All</button></span></h2><div id="pend"></div></div>
   <div class="grid">
-    <div class="card"><h2>Latest gate scans <span id="latestN"></span></h2><div id="latest"></div></div>
+    <div class="card"><h2>Recent scanned (Bucket) <span id="latestN"></span></h2><div id="latest"></div></div>
     <div style="display:grid;gap:18px;align-content:start">
       <div class="card"><h2>Needs attention <span id="attN"></span></h2><div id="att"></div></div>
-      <div class="card"><h2>Guards today <span>boxes scanned</span></h2><div id="guards"></div></div>
     </div>
   </div>
 </div>
@@ -119,71 +140,71 @@ const isProb = r => r.status === 'NOT FOUND' || r.status === 'ALREADY OUT' || r.
 function hourOf(at){ const m = String(at).match(/(\d+):(\d+)\s*(am|pm)/i); if(!m) return null; let h = +m[1] % 12; if(/pm/i.test(m[3])) h += 12; return h; }
 function hourLabel(h){ return (h % 12 || 12) + (h < 12 ? ' am' : ' pm'); }
 
-function render(list){
-  const scans = list.length, out = list.filter(isOut);
-  const orders = {};                       // latest state per order
-  list.slice().reverse().forEach(r => { if(isOut(r)) orders[r.orderid] = r; });
-  const done = Object.values(orders).filter(r => r.status === 'DISPATCHED').length;
-  const part = Object.values(orders).filter(r => r.status === 'PARTIAL');
-  const probs = list.filter(isProb);
-  const nf = probs.filter(r => r.status === 'NOT FOUND').length, dup = probs.filter(r => r.status === 'ALREADY OUT').length, mm = probs.filter(r => r.status === 'MISMATCH').length;
-  const nOrders = Object.keys(orders).length;
-  $('rings').innerHTML =
-    ring(out.length, 'Boxes out of gate', scans ? Math.round(out.length / scans * 100) + '% of scans' : 'today', '#1E7B3C', scans ? out.length / scans * 100 : 0) +
-    ring(done, 'Orders complete', `of ${nOrders} orders`, '#16311F', nOrders ? done / nOrders * 100 : 0) +
-    ring(part.length, 'Boxes still inside', 'orders part shipped', '#1D5C96', nOrders ? part.length / nOrders * 100 : 0) +
-    ring(probs.length, 'Problems', [nf && nf + ' not found', dup && dup + ' dup', mm && mm + ' mismatch'].filter(Boolean).join(' · ') || 'none', '#9E2B25', scans ? probs.length / scans * 100 : 0) +
-    ring(scans, 'Total scans', 'today', '#B98F4E', 100);
+const catOf = id => /^boxup\s*-?\s*\d+/i.test(String(id || '').trim()) ? 'B2C' : 'B2B';
+let SCANS = [], SUM = { today: [], pendingAll: [] }, PMODE = 'today';
+const isDone = o => /^dispatched/i.test(o.status);
 
-  // by hour
-  const hrs = {}; out.forEach(r => { const h = hourOf(r.at); if(h !== null) hrs[h] = (hrs[h] || 0) + 1; });
-  const keys = Object.keys(hrs).map(Number);
-  if(!keys.length) $('hours').innerHTML = '<div class="empty">No boxes out yet today.</div>';
-  else{
-    const lo = Math.min(...keys, 9), hi = Math.max(...keys, new Date().getHours()), max = Math.max(...Object.values(hrs));
-    const now = new Date().getHours(); let bars = '', xs = '';
-    for(let h = lo; h <= hi; h++){ const n = hrs[h] || 0;
-      bars += `<div class="bar"><b>${n || ''}</b><i class="${h === now ? 'now' : ''}" style="height:${n ? Math.max(4, n / max * 82) : 0}%"></i></div>`;
-      xs += `<span>${hourLabel(h)}</span>`; }
-    $('hours').innerHTML = `<div class="bars">${bars}</div><div class="xl">${xs}</div>`;
-  }
-  // by courier
-  const cr = {}; out.forEach(r => { const c = r.courier || 'Other'; cr[c] = (cr[c] || 0) + 1; });
-  const cmax = Math.max(1, ...Object.values(cr));
-  $('couriers').innerHTML = Object.keys(cr).length ? Object.entries(cr).sort((a, b) => b[1] - a[1]).map(([c, n]) =>
-    `<div class="r">${esc(c)}<div class="track"><i style="width:${n / cmax * 100}%;background:var(--forest)"></i></div><em>${n}</em></div>`).join('')
-    : '<div class="empty">No boxes out yet today.</div>';
-  // latest
+function render(){
+  const list = SCANS, today = SUM.today || [], pAll = SUM.pendingAll || [];
+  const todayPend = today.filter(o => !isDone(o));
+  const scannedOrders = new Set(list.filter(isOut).map(r => String(r.orderid).toLowerCase()));
+  // four circles
+  $('rings').innerHTML =
+    ring(today.length, 'Today Order', 'labels printed today', '#16311F', 100) +
+    ring(todayPend.length, 'Pending', today.length ? `of ${today.length} today` : 'today', '#9A6400', today.length ? todayPend.length / today.length * 100 : 0) +
+    ring(scannedOrders.size, 'Scanned', `${list.filter(isOut).length} boxes out today`, '#1E7B3C', today.length ? Math.min(100, scannedOrders.size / today.length * 100) : (scannedOrders.size ? 100 : 0)) +
+    ring(pAll.length, 'Pending (All)', 'not yet out, any day', '#1D5C96', pAll.length ? 100 : 0);
+  // B2C / B2B
+  ['B2C', 'B2B'].forEach(c => {
+    const t = today.filter(o => (o.category || catOf(o.orderid)) === c);
+    const d = t.filter(isDone).length, p = t.length - d;
+    const sc = list.filter(r => isOut(r) && catOf(r.orderid) === c).length;
+    $('cat' + c).innerHTML = `<div class="st k1"><b>${t.length}</b><span>Dispatch schedule today</span></div>
+      <div class="st k2"><b>${d}</b><span>Dispatched</span></div>
+      <div class="st k3"><b>${p}</b><span>Pending</span></div>
+      <div class="st k4"><b>${sc}</b><span>Scanned (boxes)</span></div>`;
+  });
+  // pending list
+  const pl = PMODE === 'today' ? todayPend : pAll;
+  $('pend').innerHTML = pl.length ? `<div class="pscroll"><table><tr><th>Order ID</th><th>Type</th><th>Customer</th><th>City</th><th>Courier</th><th>Boxes</th><th>Printed</th><th>Status</th></tr>${
+    pl.map(o => { const c = o.category || catOf(o.orderid); return `<tr><td class="o">${esc(o.orderid)}</td><td><span class="tag t-${c}">${c}</span></td><td>${esc(o.name)}</td><td>${esc(o.city)}</td><td>${esc(o.courier)}</td><td>${esc(o.boxes)}</td><td>${esc(o.printed)}</td><td><span class="chip ${/^partly/i.test(o.status) ? 'c-part' : 'c-warn'}">${esc(o.status)}</span></td></tr>`; }).join('')}</table></div>`
+    : `<div class="empty">${PMODE === 'today' ? 'Nothing pending from today.' : 'Nothing pending.'}</div>`;
   const chip = r => ({ DISPATCHED:['c-ok','DISPATCHED'], PARTIAL:['c-part',`BOX ${r.box}/${r.total}`], 'ALREADY OUT':['c-warn','ALREADY OUT'], 'NOT FOUND':['c-bad','NOT FOUND'], MISMATCH:['c-bad','MISMATCH'] }[r.status] || ['c-warn', r.status]);
-  $('latestN').textContent = scans ? `last ${Math.min(12, scans)} of ${scans}` : '';
-  $('latest').innerHTML = scans ? `<table><tr><th>Time</th><th>Order ID</th><th>Customer</th><th>Courier</th><th>Box</th><th>Guard</th><th>Status</th></tr>${
-    list.slice(0, 12).map(r => { const [c, t] = chip(r); return `<tr><td>${esc(r.at)}</td><td class="o">${esc(r.orderid)}</td><td>${esc(r.name || (r.status === 'NOT FOUND' ? 'Not in log' : ''))}</td><td>${esc(r.courier || '')}</td><td>${r.box ? esc(r.box) + ' / ' + esc(r.total) : ''}</td><td>${esc(r.by || '')}</td><td><span class="chip ${c}">${esc(t)}</span></td></tr>`; }).join('')}</table>`
-    : '<div class="empty">No scans yet today.</div>';
+  // recent scanned, grouped by bucket (one Done = same guard, same minute)
+  const buckets = [];
+  list.forEach(r => { const k = (r.by || '') + '|' + r.at; const last = buckets[buckets.length - 1];
+    if(last && last.k === k) last.rows.push(r); else buckets.push({ k, at: r.at, by: r.by, rows: [r] }); });
+  $('latestN').textContent = buckets.length ? `${buckets.length} bucket${buckets.length > 1 ? 's' : ''} today` : '';
+  $('latest').innerHTML = buckets.length ? '<div class="pscroll">' + buckets.slice(0, 15).map(bk => {
+    const out = bk.rows.filter(isOut).length, bad = bk.rows.filter(isProb).length;
+    return `<div class="bkt"><div class="bkt-hd"><b>&#129530; Bucket · ${esc(bk.at)}</b><span>${esc(bk.by || '')}</span><em>${out} box${out === 1 ? '' : 'es'} out${bad ? ` · <i>${bad} problem${bad > 1 ? 's' : ''}</i>` : ''}</em></div>
+      ${bk.rows.map(r => { const [c, t] = chip(r); const cat = r.status === 'NOT FOUND' ? '' : catOf(r.orderid);
+        return `<div class="bkt-row"><span class="o">${esc(r.orderid)}</span>${cat ? `<span class="tag t-${cat}">${cat}</span>` : ''}<span class="nm">${esc(r.name || (r.status === 'NOT FOUND' ? 'Not in log' : ''))}${r.courier ? ' · ' + esc(r.courier) : ''}</span><span class="bx">${r.box ? 'Box ' + esc(r.box) + '/' + esc(r.total) : ''}</span><span class="chip ${c}">${esc(t)}</span></div>`; }).join('')}</div>`;
+  }).join('') + '</div>' : '<div class="empty">No scans yet today.</div>';
   // attention
-  const att = [];
+  const probs = list.filter(isProb), att = [];
   probs.forEach(r => att.push(r.status === 'NOT FOUND'
     ? `<div class="alert a-bad"><span class="ic">&#10006;</span><div><b>${esc(r.orderid)} not found</b>Box stopped at gate, check the label</div><span class="t">${esc(r.at)}</span></div>`
-    : r.status === 'MISMATCH'
-    ? `<div class="alert a-bad"><span class="ic">&#10006;</span><div><b>${esc(r.orderid)} barcode mismatch</b>Order ID and AWB from different orders</div><span class="t">${esc(r.at)}</span></div>`
     : `<div class="alert a-warn"><span class="ic">&#9888;</span><div><b>${esc(r.orderid)} scanned again</b>Check for a duplicate label</div><span class="t">${esc(r.at)}</span></div>`));
-  part.forEach(r => att.push(`<div class="alert a-part"><span class="ic">&#9203;</span><div><b>${esc(r.orderid)}: ${r.box} of ${r.total} boxes out</b>${r.total - r.box} box${r.total - r.box > 1 ? 'es' : ''} still inside</div><span class="t">${esc(r.at)}</span></div>`));
+  pAll.filter(o => /^partly/i.test(o.status)).forEach(o => att.push(`<div class="alert a-part"><span class="ic">&#9203;</span><div><b>${esc(o.orderid)}: ${esc(o.status)}</b>Remaining boxes still inside</div><span class="t"></span></div>`));
   $('attN').textContent = att.length ? att.length + ' open' : '';
   $('att').innerHTML = att.length ? att.slice(0, 10).join('') : '<div class="empty">All clear.</div>';
-  // guards
-  const g = {}; list.forEach(r => { if(!r.by) return; g[r.by] = g[r.by] || { n:0, first:r.at, last:r.at }; if(isOut(r)) g[r.by].n++; g[r.by].first = r.at; });
-  $('guards').innerHTML = Object.keys(g).length ? Object.entries(g).map(([name, v]) =>
-    `<div class="guard"><div class="av">${esc(name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase())}</div><div class="m">${esc(name)}<span>${esc(v.first)} to ${esc(v.last)}</span></div><div class="n">${v.n}</div></div>`).join('')
-    : '<div class="empty">No guard has scanned yet today.</div>';
   $('duty').innerHTML = '&#128737; On duty: ' + esc(list[0] && list[0].by || '-');
 }
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { PMODE = b.dataset.p; document.querySelectorAll('[data-p]').forEach(x => x.classList.toggle('on', x === b)); render(); });
 
+async function getJSON(action){
+  const res = await fetch(LOG_URL + '?action=' + action + '&t=' + Date.now());
+  let d = null; try{ d = await res.json(); }catch(e){}
+  if(!d || d.ok === undefined) throw new Error('The Google Sheet script is not up to date (deploy the latest version).');
+  if(!d.ok) throw new Error(d.error || 'Sheet error');
+  return d;
+}
 async function load(){
   try{
-    const res = await fetch(LOG_URL + '?action=gatetoday&t=' + Date.now());
-    let d = null; try{ d = await res.json(); }catch(e){}
-    if(!d || d.ok === undefined) throw new Error('The Google Sheet script does not have the Gate Scanner part yet (add GateScan.gs and deploy a new version).');
-    if(!d.ok) throw new Error(d.error || 'Sheet error');
-    $('err').hidden = true; render(d.list || []);
+    const [t, s] = await Promise.all([getJSON('gatetoday'), getJSON('gatesummary')]);
+    SCANS = t.list || []; SUM = s;
+    $('err').hidden = true; render();
     $('dot').style.background = '#7CDB98';
     $('upd').textContent = 'Live · updated ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
   }catch(e){
