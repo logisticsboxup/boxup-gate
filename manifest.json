@@ -1,0 +1,17 @@
+{
+  "name": "BoxUp Gate Scanner",
+  "short_name": "Gate Scanner",
+  "description": "Security gate: scan BoxUp shipping labels to mark boxes dispatched in the Label Log sheet.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7EF",
+  "theme_color": "#16311F",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
