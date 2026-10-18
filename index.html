@@ -130,6 +130,7 @@
   .bx-oid{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;}
   .bx-who{font-size:15px;font-weight:600;margin-top:4px;}
   .bx-cr{font-size:13px;color:var(--gold);font-weight:700;margin-top:2px;letter-spacing:.03em;}
+  .bx-warn{margin-top:12px;background:#FFF3D6;color:#7A4F00;border-radius:10px;padding:10px 12px;font:700 14px 'Inter';}
   .bx-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line);font:700 12px 'Inter';color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
   .bx-bar .btn{padding:7px 12px;font-size:12.5px;width:auto;}
   .bx-list{max-height:50vh;overflow:auto;padding:8px 12px;}
@@ -173,7 +174,7 @@
       <input id="code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Order ID / AWB" inputmode="text">
       <button class="btn" id="goBtn">Add</button>
     </div>
-    <div class="hint">Scan the Order ID (or any AWB) on a box. A list of all its boxes opens: tick the ones going out. When done, press Done.</div>
+    <div class="hint">Scan each box (Order ID or AWB). Correct boxes go straight into the bucket. When all boxes are scanned, press Done.</div>
     <button class="btn gold" id="camBtn">&#128247; Scan with camera</button>
     <div id="reader"><video id="camVid" playsinline muted autoplay></video><div class="aim"><i></i></div><div class="cam-msg" id="camMsg">Hold the barcode flat inside the frame, 10 to 20 cm away</div></div>
   </div>
@@ -301,33 +302,58 @@ async function addToBucket(raw){
   lastCode = code; lastAt = now;
   showResult('r-wait', 'Finding order…', `<div class="oid">${esc(code)}</div>`);
   try{
-    const d = await (await fetch(LOG_URL + '?action=gateorder&code=' + encodeURIComponent(code) + '&t=' + Date.now())).json();
-    if(!d || !d.ok) throw new Error((d && d.error) || 'bad answer');
+    let res;
+    try{ res = await fetch(LOG_URL + '?action=gateorder&code=' + encodeURIComponent(code) + '&t=' + Date.now()); }
+    catch(e){ throw new Error('NET'); }
+    let d = null; try{ d = await res.json(); }catch(e){}
+    if(!d || d.ok === undefined) throw new Error('SETUP');          // script answered, but not with the gate reply
+    if(!d.ok) throw new Error('SHEET:' + (d.error || 'unknown error'));
     if(!d.found){
       showResult('r-bad', '&#10006; NOT FOUND', `<div class="oid">${esc(code)}</div><div class="meta">This barcode is not in the label log. <b>Stop the box</b> and call the dispatch team.</div>`);
       beep('bad'); focusCode(); return;
     }
-    $('result').className = 'result';
-    openBoxes(d); beep('add');
+    openBoxes(d);
   }catch(err){
-    showResult('r-warn', '&#9888; NO INTERNET', `<div class="oid">${esc(code)}</div><div class="meta">Could not reach the system. Check the internet and scan again.</div>`);
+    const m = String(err.message || '');
+    if(m === 'NET') showResult('r-warn', '&#9888; NO INTERNET', `<div class="oid">${esc(code)}</div><div class="meta">Could not reach the system. Check the internet and scan again.</div>`);
+    else if(m === 'SETUP') showResult('r-bad', '&#9888; SHEET NOT SET UP', `<div class="oid">${esc(code)}</div><div class="meta">The Google Sheet script does not have the Gate Scanner part yet. Ask the office to add GateScan.gs to the Apps Script and deploy a new version.</div>`);
+    else showResult('r-bad', '&#9888; SHEET ERROR', `<div class="oid">${esc(code)}</div><div class="meta">${esc(m.replace(/^SHEET:/,''))}</div>`);
     beep('warn'); focusCode();
   }
 }
 
+/* Correct scan: the box goes straight into the bucket, no popup.
+   Popup only when something is wrong: box already out, already in the bucket, or nothing left to send. */
 function openBoxes(d){
-  pop = d;
   const o = d.order, sc = String(d.scanned).toLowerCase();
-  const byAwb = d.boxes.some(b => b.awb && b.awb.toLowerCase() === sc && d.boxes.filter(x => x.awb === b.awb).length === 1);
-  d.boxes.forEach(b => {
-    b.inBucket = bucket.some(x => keyOf(x.orderid, x.box) === keyOf(o.orderid, b.box));
-    b.tick = !b.out && !b.inBucket && (!byAwb || b.awb.toLowerCase() === sc);   // scanned an AWB: only that box
-  });
+  d.boxes.forEach(b => { b.inBucket = bucket.some(x => keyOf(x.orderid, x.box) === keyOf(o.orderid, b.box)); });
+  // which box was scanned: its own AWB (one AWB per box), otherwise the next box still inside
+  const own = d.boxes.filter(b => b.awb && b.awb.toLowerCase() === sc);
+  const exact = own.length === 1 ? own[0] : null;
+  const target = exact || d.boxes.find(b => !b.out && !b.inBucket);
+  if(target && !target.out && !target.inBucket){
+    bucket.unshift({ code: target.code, orderid: o.orderid, box: target.box, total: d.boxes.length, awb: target.awb,
+                     name: o.name, city: o.city, courier: o.courier, at: Date.now() });
+    flashKey = String(o.orderid).toLowerCase();
+    saveBucket(); beep('ok');
+    showResult('r-ok', '&#10004; ADDED', `<div class="oid">${esc(o.orderid)} · Box ${target.box} of ${d.boxes.length}</div><div class="meta">${[o.name, o.city, o.courier].filter(Boolean).map(esc).join(' · ')}</div>`);
+    focusCode();
+    return;
+  }
+  // something is wrong: show the order's boxes so the guard can see why
+  pop = d;
+  const t = exact || d.boxes[0];
+  const why = t.out ? `This box already went out${t.outAt ? ' on ' + esc(t.outAt) : ''}${t.outBy ? ' (' + esc(t.outBy) + ')' : ''}. Check for a duplicate label.`
+            : t.inBucket ? 'This box is already in the bucket. Do not scan it twice.'
+            : 'All boxes of this order are already out or in the bucket.';
+  d.boxes.forEach(b => { b.tick = false; });
   $('bxHead').innerHTML = `<div class="bx-oid">Order ${esc(o.orderid)}</div>
     <div class="bx-who">${[o.name, o.city].filter(Boolean).map(esc).join(', ')}</div>
-    <div class="bx-cr">${esc(o.courier || '')} · ${o.total} box${o.total > 1 ? 'es' : ''}</div>`;
+    <div class="bx-cr">${esc(o.courier || '')} · ${o.total} box${o.total > 1 ? 'es' : ''}</div>
+    <div class="bx-warn">&#9888; ${why}</div>`;
   renderBoxes();
   $('boxModal').hidden = false;
+  beep('warn');
 }
 function renderBoxes(){
   const d = pop;
@@ -346,7 +372,7 @@ function renderBoxes(){
   $('bxAll').disabled = !free;
   $('bxAdd').disabled = !n;
   $('bxAdd').innerHTML = n ? `&#10004; Add ${n} box${n > 1 ? 'es' : ''} to bucket` : 'Tick the boxes going out';
-  $('bxNote').textContent = !free ? 'All boxes of this order are already out or in the bucket.' : '';
+  $('bxNote').textContent = '';
 }
 $('bxList').addEventListener('change', e => { const i = e.target.dataset.i; if(i !== undefined){ pop.boxes[+i].tick = e.target.checked; renderBoxes(); } });
 $('bxAll').onclick = () => { const free = pop.boxes.filter(b => !b.out && !b.inBucket); const all = free.every(b => b.tick); free.forEach(b => b.tick = !all); renderBoxes(); };
