@@ -61,7 +61,7 @@ td.o{font-weight:700}
 .rc{display:flex;flex-direction:column;align-items:center;gap:12px}
 .ring{width:170px;height:170px;border-radius:50%;display:grid;place-items:center}
 .ring .in{width:136px;height:136px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ring .in b{font-size:44px;font-weight:800;line-height:1}
+.ring .in b{font-size:50px;font-weight:800;line-height:1}
 .ring .in span{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:600}
 .rl{font:700 13px Inter;color:var(--ink);letter-spacing:.06em;text-transform:uppercase}
 </style>
@@ -133,7 +133,7 @@ $('today').innerHTML = '&#128197; ' + new Date().toLocaleDateString('en-IN',{wee
 
 function ring(n, label, sub, color, pct){
   pct = Math.max(0, Math.min(100, pct || 0));
-  return `<div class="rc"><div class="ring" style="background:conic-gradient(${color} 0 ${pct}%, #EEE9DC ${pct}% 100%)"><div class="in"><b style="color:${color}">${n}</b><span>${sub}</span></div></div><div class="rl">${label}</div></div>`;
+  return `<div class="rc"><div class="ring" style="background:conic-gradient(${color} 0 ${pct}%, #EEE9DC ${pct}% 100%)"><div class="in"><b style="color:${color}">${n}</b></div></div><div class="rl">${label}</div></div>`;
 }
 const isOut = r => r.status === 'DISPATCHED' || r.status === 'PARTIAL';
 const isProb = r => r.status === 'NOT FOUND' || r.status === 'ALREADY OUT' || r.status === 'MISMATCH';
