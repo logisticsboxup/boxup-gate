@@ -214,6 +214,6 @@ async function load(){
     $('err').hidden = false; $('err').textContent = e.message === 'Failed to fetch' ? 'Could not reach the Google Sheet. Check the internet.' : e.message;
   }
 }
-load(); setInterval(load, 30000);
+load(); setInterval(() => { if(!document.hidden) load(); }, 10000);   // refresh every 10 seconds
 </script>
 </body></html>

@@ -594,6 +594,7 @@ window.addEventListener('online', netState); window.addEventListener('offline', 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 
 showGuard(); saveBucket(); netState(); loadToday();
+setInterval(() => { if(!document.hidden && !busy) loadToday(); }, 10000);   // refresh today's list every 10 seconds
 if(!guard) askGuard(); else focusCode();
 </script>
 </body>
