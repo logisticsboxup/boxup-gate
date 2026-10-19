@@ -23,9 +23,17 @@
   html,body{background:var(--cream);color:var(--ink);font-family:'Inter',system-ui,sans-serif;}
   body{min-height:100vh;padding:0 0 32px;}
   .top{background:var(--forest);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;}
-  .top h1{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;flex:1;}
+  .top h1{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;flex:none;}
+  .tabs{display:flex;gap:6px;margin-right:auto;margin-left:24px}
+  .tabs a{color:#fff;text-decoration:none;font:700 13.5px 'Inter';padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+  .tabs a.on{background:var(--gold);border-color:var(--gold)}
+  @media (max-width:520px){ .top{flex-wrap:wrap} .tabs{order:3;width:100%;margin:6px 0 0} .tabs a{flex:1;text-align:center} }
   .top h1 small{display:block;font-family:'Inter';font-size:11px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;}
   .guard{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:7px 12px;font:600 13px 'Inter';cursor:pointer;white-space:nowrap;}
+  .tabs{display:flex;gap:6px;margin-left:24px}
+  .tabs a{color:#fff;text-decoration:none;font:700 13.5px Inter;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+  .tabs a.on{background:var(--gold);border-color:var(--gold)}
+  @media (max-width:640px){.top{flex-wrap:wrap}.tabs{margin-left:0;order:3;width:100%}.tabs a{flex:1;text-align:center}}
   .net{width:10px;height:10px;border-radius:50%;background:#7CDB98;flex:none;}
   .net.off{background:#F0A35E;}
   .wrap{max-width:760px;margin:0 auto;padding:16px;}
@@ -172,7 +180,9 @@
 </head>
 <body>
 <div class="top">
-  <h1><small>BoxUp · Security Gate</small>Gate Scanner</h1>
+  <h1 style="flex:none"><small>BoxUp · Security Gate</small>Gate Scanner</h1>
+  <nav class="tabs"><a class="on" href="./">&#128247; Scanner</a><a href="dashboard.html">&#128202; System</a></nav>
+  <span style="flex:1"></span>
   <span class="net" id="net" title="Online"></span>
   <button class="guard" id="guardBtn">Guard: ?</button>
 </div>
